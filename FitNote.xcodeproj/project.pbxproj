@@ -12,6 +12,7 @@
 
 /* Begin PBXFileReference section */
 		4E0E8D902E326F90005FA5E1 /* FitNote.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = FitNote.xcodeproj; sourceTree = "<group>"; };
+		4EA8EC402E38E7C6000E713A /* FitNote.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = FitNote.xcodeproj; sourceTree = "<group>"; };
 		4ED5B0592E30BD4E0087EA30 /* FitNote.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = FitNote.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		4EFA64072E30E6300003A495 /* FitNote.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = FitNote.xcodeproj; sourceTree = "<group>"; };
 		4EFA64142E30FB070003A495 /* File.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = File.txt; sourceTree = "<group>"; };
@@ -42,6 +43,13 @@
 
 /* Begin PBXGroup section */
 		4E0E8D912E326F90005FA5E1 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		4EA8EC412E38E7C6000E713A /* Products */ = {
 			isa = PBXGroup;
 			children = (
 			);
@@ -134,6 +142,10 @@
 				{
 					ProductGroup = 4EFA64082E30E6300003A495 /* Products */;
 					ProjectRef = 4EFA64072E30E6300003A495 /* FitNote.xcodeproj */;
+				},
+				{
+					ProductGroup = 4EA8EC412E38E7C6000E713A /* Products */;
+					ProjectRef = 4EA8EC402E38E7C6000E713A /* FitNote.xcodeproj */;
 				},
 			);
 			projectRoot = "";

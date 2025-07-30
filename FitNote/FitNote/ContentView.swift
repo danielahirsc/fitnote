@@ -122,6 +122,7 @@ struct WorkoutSection: Identifiable, Equatable, Hashable, Codable {
 }
 
 struct ContentView: View {
+    @EnvironmentObject var authManager: AuthenticationManager
     @State private var workoutPlan = WorkoutPlan.loadFromUserDefaults()
     @State private var showAddDayOrFocus = false
     @State private var selectedSection: WorkoutSection? = nil
@@ -131,7 +132,6 @@ struct ContentView: View {
     @State private var editingWorkoutID: UUID? = nil
     @State private var sectionNameDraft: String = ""
     @State private var workoutNameDraft: String = ""
-    @EnvironmentObject var authManager: AuthenticationManager
     
     var body: some View {
         NavigationStack {
@@ -162,54 +162,9 @@ struct ContentView: View {
     }
 }
 
-// Add BrandedHeader view
-struct BrandedHeader: View {
-    let showBack: Bool
-    let onBack: (() -> Void)?
-    @EnvironmentObject var authManager: AuthenticationManager
-    
-    var body: some View {
-        HStack(spacing: 8) {
-            if showBack, let onBack = onBack {
-                Button(action: onBack) {
-                    Image(systemName: "chevron.left")
-                        .font(.system(size: 22, weight: .bold))
-                        .foregroundColor(.accentColor)
-                }
-            }
-            Image("AppLogo")
-                .resizable()
-                .scaledToFit()
-                .frame(width: 36, height: 36)
-            Text("FitNote")
-                .font(.title).bold()
-            Spacer()
-            
-            // Sign Out Button
-            Menu {
-                if let userName = authManager.userName {
-                    Text("Signed in as \(userName)")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                }
-                Divider()
-                Button(action: {
-                    authManager.signOut()
-                }) {
-                    Label("Sign Out", systemImage: "rectangle.portrait.and.arrow.right")
-                }
-            } label: {
-                Image(systemName: "person.circle")
-                    .font(.system(size: 24, weight: .regular))
-                    .foregroundColor(.accentColor)
-            }
-        }
-        .padding(.top, 24)
-        .padding(.horizontal, 16)
-    }
-}
 
-// In DaySelectionView, use BrandedHeader(showBack: false, onBack: nil)
+
+// DaySelectionView with WhatsApp-style header
 struct DaySelectionView: View {
     @Binding var workoutPlan: WorkoutPlan
     @Binding var showAddDayOrFocus: Bool
@@ -217,35 +172,46 @@ struct DaySelectionView: View {
     @State private var editingSectionID: UUID? = nil
     @State private var sectionNameDraft: String = ""
     @State private var isEditing = false
+    @State private var isReorderingSections = false
+    @State private var menuSectionID: UUID? = nil
+    @EnvironmentObject var authManager: AuthenticationManager
     var body: some View {
         VStack(alignment: .leading) {
-            BrandedHeader(showBack: false, onBack: nil)
-            HStack(alignment: .center) {
-                Text("Choose your workout")
-                    .font(.title).bold()
-                    .padding(.horizontal, 16)
-                    .padding(.top, 32)
+            HStack(alignment: .center, spacing: 0) {
+                Text("Workouts")
+                    .font(.system(size: 30, weight: .bold))
+                    .padding(.leading, 16)
+                    .padding(.top, 12)
                 Spacer()
+                if isReorderingSections {
+                    Button("Done") {
+                        isReorderingSections = false
+                    }
+                    .font(.system(size: 18, weight: .semibold))
+                    .padding(.trailing, 8)
+                    .padding(.top, 12)
+                }
+                Button(action: { showAddDayOrFocus = true }) {
+                    Image(systemName: "plus.circle.fill")
+                        .font(.system(size: 24, weight: .regular))
+                        .foregroundColor(.accentColor)
+                        .padding(.trailing, 8)
+                        .padding(.top, 12)
+                }
+                Menu {
+                    Button(action: { authManager.signOut() }) {
+                        Label("Sign Out", systemImage: "rectangle.portrait.and.arrow.right")
+                    }
+                } label: {
+                    Image(systemName: "person.circle")
+                        .font(.system(size: 24, weight: .regular))
+                        .foregroundColor(.accentColor)
+                        .padding(.trailing, 16)
+                        .padding(.top, 12)
+                }
             }
             // Start grey area
             VStack(spacing: 0) {
-                // Action bar in grey area
-                HStack(spacing: 16) {
-                    Spacer()
-                    Button(action: { showAddDayOrFocus = true }) {
-                        Image(systemName: "plus.circle")
-                            .font(.system(size: 28, weight: .regular))
-                            .foregroundColor(.accentColor)
-                    }
-                    Button(action: { isEditing.toggle() }) {
-                        Image(systemName: isEditing ? "checkmark" : "pencil")
-                            .font(.system(size: 22, weight: .regular))
-                            .foregroundColor(.accentColor)
-                    }
-                }
-                .padding(.horizontal, 16)
-                .padding(.top, 8)
-                .padding(.bottom, 4)
                 if workoutPlan.sections.isEmpty {
                     VStack {
                         Spacer()
@@ -265,12 +231,23 @@ struct DaySelectionView: View {
                         ForEach(workoutPlan.sections) { section in
                             HStack {
                                 if editingSectionID == section.id {
-                                    TextField("Section Name", text: $sectionNameDraft, onCommit: {
+                                    TextField("Rename section", text: $sectionNameDraft)
+                                        .font(.title3)
+                                        .padding(.vertical, 12)
+                                        .padding(.horizontal, 16)
+                                        .background(Color(.systemBackground))
+                                        .cornerRadius(12)
+                                    Button(action: {
                                         if let idx = workoutPlan.sections.firstIndex(where: { $0.id == section.id }) {
                                             workoutPlan.sections[idx].title = sectionNameDraft
-                                            editingSectionID = nil
                                         }
-                                    })
+                                        editingSectionID = nil
+                                    }) {
+                                        Image(systemName: "checkmark.circle.fill").foregroundColor(.green)
+                                    }
+                                    Button(action: { editingSectionID = nil }) {
+                                        Image(systemName: "xmark.circle.fill").foregroundColor(.red)
+                                    }
                                 } else {
                                     Button(action: { selectedSection = section }) {
                                         Text(section.title)
@@ -284,33 +261,52 @@ struct DaySelectionView: View {
                                     }
                                     .buttonStyle(PlainButtonStyle())
                                     .contentShape(Rectangle())
-                                    .if(!isEditing) { view in
-                                        view.swipeActions(edge: .trailing) {
-                                            Button(role: .destructive) {
-                                                if let idx = workoutPlan.sections.firstIndex(where: { $0.id == section.id }) {
-                                                    workoutPlan.sections.remove(at: idx)
-                                                }
-                                            } label: {
-                                                Label("Delete", systemImage: "trash")
-                                            }
-                                            Button {
-                                                editingSectionID = section.id
-                                                sectionNameDraft = section.title
-                                            } label: {
-                                                Label("Rename", systemImage: "pencil")
-                                            }
-                                        }
-                                    }
                                 }
                             }
-                        }
-                        .if(isEditing) { view in
-                            view.onMove { indices, newOffset in
-                                workoutPlan.sections.move(fromOffsets: indices, toOffset: newOffset)
+                            .swipeActions(edge: .trailing) {
+                                Button(role: .destructive) {
+                                    if let idx = workoutPlan.sections.firstIndex(where: { $0.id == section.id }) {
+                                        workoutPlan.sections.remove(at: idx)
+                                    }
+                                } label: {
+                                    Image(systemName: "trash")
+                                }
+                                Button {
+                                    menuSectionID = section.id
+                                } label: {
+                                    Image(systemName: "ellipsis")
+                                }.tint(.gray)
+                            }
+                            .confirmationDialog("Options", isPresented: Binding(
+                                get: { menuSectionID == section.id },
+                                set: { if !$0 { menuSectionID = nil } }
+                            ), titleVisibility: .visible) {
+                                Button {
+                                    editingSectionID = section.id
+                                    sectionNameDraft = section.title
+                                } label: {
+                                    Label("Edit", systemImage: "pencil")
+                                }
+                                Button {
+                                    isReorderingSections.toggle()
+                                } label: {
+                                    Label("Reorder", systemImage: "arrow.up.arrow.down")
+                                }
+                                Button(role: .destructive) {
+                                    if let idx = workoutPlan.sections.firstIndex(where: { $0.id == section.id }) {
+                                        workoutPlan.sections.remove(at: idx)
+                                    }
+                                } label: {
+                                    Label("Delete", systemImage: "trash")
+                                }
+                                Button("Cancel", role: .cancel) {}
                             }
                         }
+                        .onMove { indices, newOffset in
+                            workoutPlan.sections.move(fromOffsets: indices, toOffset: newOffset)
+                        }
                     }
-                    .if(isEditing) { view in view.environment(\.editMode, .constant(.active)) }
+                    .environment(\.editMode, .constant(isReorderingSections ? .active : .inactive))
                 }
             }
             .background(Color(.systemGray6))
@@ -345,59 +341,52 @@ struct WorkoutListView: View {
     @State private var selectedWorkout: Workout? = nil
     @State private var showAddWorkoutSheet = false
     @State private var isEditing = false
+    @State private var isReorderingWorkouts = false
+    @State private var menuWorkoutID: UUID? = nil
+    @State private var completedWorkoutIDs: Set<UUID> = []
+    @State private var showCongrats: Bool = false
+    @EnvironmentObject var authManager: AuthenticationManager
+    
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            BrandedHeader(showBack: true, onBack: onBack)
-            HStack(alignment: .center) {
-                if isRenaming {
-                    TextField("Section Name", text: $sectionNameDraft, onCommit: {
-                        if let idx = workoutPlan.sections.firstIndex(where: { $0.id == section.id }) {
-                            workoutPlan.sections[idx].title = sectionNameDraft
-                            isRenaming = false
-                        }
-                    })
-                    .font(.title).bold()
-                    .padding(.horizontal, 16)
-                    .padding(.top, 32)
-                    .onAppear { sectionNameDraft = section.title }
-                } else {
-                    Text(section.title)
-                        .font(.title).bold()
-                        .padding(.horizontal, 16)
-                        .padding(.top, 32)
+            HStack(alignment: .center, spacing: 0) {
+                Button(action: { onBack() }) {
+                    Image(systemName: "chevron.left")
+                        .font(.system(size: 24, weight: .bold))
+                        .foregroundColor(.accentColor)
+                        .padding(.leading, 8)
+                        .padding(.top, 12)
                 }
+                Text(section.title)
+                    .font(.system(size: 30, weight: .bold))
+                    .padding(.leading, 8)
+                    .padding(.top, 12)
                 Spacer()
-                Button(action: { showAddWorkoutSheet = true }) {
-                    Image(systemName: "plus.circle")
-                        .font(.system(size: 28, weight: .regular))
-                        .foregroundColor(.accentColor)
-                        .padding(.trailing, 4)
-                        .padding(.top, 32)
-                }
-                Button(action: { isEditing.toggle() }) {
-                    Image(systemName: isEditing ? "checkmark" : "pencil")
-                        .font(.system(size: 22, weight: .regular))
-                        .foregroundColor(.accentColor)
-                        .padding(.trailing, 16)
-                        .padding(.top, 32)
+                if isReorderingWorkouts {
+                    Button("Done") {
+                        isReorderingWorkouts = false
+                    }
+                    .font(.system(size: 18, weight: .semibold))
+                    .padding(.trailing, 8)
+                    .padding(.top, 12)
                 }
                 Menu {
-                    Button("Rename") { isRenaming = true; sectionNameDraft = section.title }
-                    Button(role: .destructive) {
-                        if let idx = workoutPlan.sections.firstIndex(where: { $0.id == section.id }) {
-                            workoutPlan.sections.remove(at: idx)
-                            onBack()
-                        }
-                    } label: {
-                        Label("Delete", systemImage: "trash")
+                    Button(action: { authManager.signOut() }) {
+                        Label("Sign Out", systemImage: "rectangle.portrait.and.arrow.right")
                     }
                 } label: {
-                    Image(systemName: "ellipsis")
-                        .rotationEffect(.degrees(90))
-                        .font(.system(size: 20, weight: .regular))
-                        .foregroundColor(.gray)
+                    Image(systemName: "person.circle")
+                        .font(.system(size: 24, weight: .regular))
+                        .foregroundColor(.accentColor)
+                        .padding(.trailing, 8)
+                        .padding(.top, 12)
+                }
+                Button(action: { showAddWorkoutSheet = true }) {
+                    Image(systemName: "plus.circle.fill")
+                        .font(.system(size: 24, weight: .regular))
+                        .foregroundColor(.accentColor)
                         .padding(.trailing, 16)
-                        .padding(.top, 32)
+                        .padding(.top, 12)
                 }
             }
             .sheet(isPresented: $showAddWorkoutSheet) {
@@ -414,7 +403,7 @@ struct WorkoutListView: View {
                     // Remove the empty state: do not show any message or button when workouts is empty
                     if workoutPlan.sections[idx].workouts.isEmpty {
                         VStack(spacing: 24) {
-                            Text("No workouts here yet! Add one 🏃‍♂️")
+                            Text("Add your first workout")
                                 .font(.body)
                                 .foregroundColor(.secondary)
                                 .multilineTextAlignment(.center)
@@ -426,48 +415,105 @@ struct WorkoutListView: View {
                         .padding(.horizontal, 16)
                         .padding(.vertical, 16)
                     } else {
-                        ForEach(workoutPlan.sections[idx].workouts) { workout in
-                            HStack {
-                                Text(workout.name)
-                                    .figtreeFont(size: 17, weight: .regular)
-                                    .foregroundColor(.primary)
-                                Spacer()
-                                if let detail = workout.detail, !detail.isEmpty {
-                                    Text(detail)
-                                        .figtreeFont(size: 14, weight: .regular)
-                                        .foregroundColor(.blue)
+                        ForEach(Array(workoutPlan.sections[idx].workouts.enumerated()), id: \.element.id) { (workoutIdx, workout) in
+                            HStack(alignment: .center) {
+                                // Checkbox
+                                Button(action: {
+                                    if completedWorkoutIDs.contains(workout.id) {
+                                        completedWorkoutIDs.remove(workout.id)
+                                    } else {
+                                        completedWorkoutIDs.insert(workout.id)
+                                    }
+                                }) {
+                                    Image(systemName: completedWorkoutIDs.contains(workout.id) ? "checkmark.circle.fill" : "circle")
+                                        .foregroundColor(completedWorkoutIDs.contains(workout.id) ? .green : .gray)
+                                        .font(.system(size: 24))
                                 }
-                                Text(workout.category.rawValue)
-                                    .figtreeFont(size: 14, weight: .regular)
-                                    .foregroundColor(.gray)
+                                .buttonStyle(PlainButtonStyle())
+                                .padding(.leading, 8)
+                                // Card content or inline edit
+                                if editingWorkoutID == workout.id {
+                                    TextField("Rename workout", text: $workoutNameDraft)
+                                        .figtreeFont(size: 17, weight: .regular)
+                                    Button(action: {
+                                        workoutPlan.sections[idx].workouts[workoutIdx].name = workoutNameDraft
+                                        editingWorkoutID = nil
+                                    }) {
+                                        Image(systemName: "checkmark.circle.fill").foregroundColor(.green)
+                                    }
+                                    Button(action: { editingWorkoutID = nil }) {
+                                        Image(systemName: "xmark.circle.fill").foregroundColor(.red)
+                                    }
+                                } else {
+                                    VStack(alignment: .leading, spacing: 4) {
+                                        Text(workout.name)
+                                            .figtreeFont(size: 17, weight: .regular)
+                                            .foregroundColor(.primary)
+                                        if let detail = workout.detail, !detail.isEmpty {
+                                            Text(detail)
+                                                .figtreeFont(size: 14, weight: .regular)
+                                                .foregroundColor(.blue)
+                                        }
+                                        Text(workout.category.rawValue)
+                                            .figtreeFont(size: 14, weight: .regular)
+                                            .foregroundColor(.gray)
+                                    }
+                                    .padding(.vertical, 12)
+                                    .padding(.horizontal, 16)
+                                    .onTapGesture {
+                                        selectedWorkout = workout
+                                    }
+                                }
+                                Spacer()
                             }
-                            .padding(.vertical, 12)
-                            .padding(.horizontal, 16)
                             .contentShape(Rectangle())
-                            .onTapGesture {
-                                selectedWorkout = workout
-                            }
                             .swipeActions(edge: .trailing) {
                                 Button(role: .destructive) {
                                     if let workoutIdx = workoutPlan.sections[idx].workouts.firstIndex(where: { $0.id == workout.id }) {
                                         workoutPlan.sections[idx].workouts.remove(at: workoutIdx)
-                                        workoutPlan.saveToUserDefaults()
+                                    }
+                                } label: {
+                                    Image(systemName: "trash")
+                                }
+                                Button {
+                                    menuWorkoutID = workout.id
+                                } label: {
+                                    Image(systemName: "ellipsis")
+                                }.tint(.gray)
+                            }
+                            .confirmationDialog("Options", isPresented: Binding(
+                                get: { menuWorkoutID == workout.id },
+                                set: { if !$0 { menuWorkoutID = nil } }
+                            ), titleVisibility: .visible) {
+                                Button {
+                                    editingWorkoutID = workout.id
+                                    workoutNameDraft = workout.name
+                                } label: {
+                                    Label("Edit", systemImage: "pencil")
+                                }
+                                Button {
+                                    isReorderingWorkouts.toggle()
+                                } label: {
+                                    Label("Reorder", systemImage: "arrow.up.arrow.down")
+                                }
+                                Button(role: .destructive) {
+                                    if let workoutIdx = workoutPlan.sections[idx].workouts.firstIndex(where: { $0.id == workout.id }) {
+                                        workoutPlan.sections[idx].workouts.remove(at: workoutIdx)
                                     }
                                 } label: {
                                     Label("Delete", systemImage: "trash")
                                 }
+                                Button("Cancel", role: .cancel) {}
                             }
                         }
-                        .if(isEditing) { view in
-                            view.onMove { indices, newOffset in
-                                workoutPlan.sections[idx].workouts.move(fromOffsets: indices, toOffset: newOffset)
-                            }
+                        .onMove { indices, newOffset in
+                            workoutPlan.sections[idx].workouts.move(fromOffsets: indices, toOffset: newOffset)
                         }
                     }
                 }
             }
             .listStyle(.insetGrouped)
-            .if(isEditing) { view in view.environment(\.editMode, .constant(.active)) }
+            .environment(\.editMode, .constant(isReorderingWorkouts ? .active : .inactive))
             .sheet(item: $selectedWorkout) { workout in
                 WorkoutDetailSheetNoImage(
                     workout: workout,
@@ -536,7 +582,7 @@ struct AddSectionView: View {
                     .padding(.vertical, 4)
                 }
             }
-            .navigationTitle("Add day or focus")
+            .navigationTitle("Name your workout")
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
                     Button(action: { presentationMode.wrappedValue.dismiss() }) {
@@ -715,7 +761,7 @@ struct WorkoutSearchView: View {
                 NavigationView {
                     Form {
                         Section(header: Text("Workout name")) {
-                            TextField("e.g. My Custom Move", text: $customName)
+                            TextField("Plank, Kayak, Jump rope...", text: $customName)
                         }
                         Section(header: Text("Type")) {
                             Picker("Type", selection: $customType) {
