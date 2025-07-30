@@ -1,6 +1,15 @@
 import SwiftUI
 import AuthenticationServices
 
+// MARK: - Brand Colors
+extension Color {
+    static let brandPrimary = Color(red: 13/255, green: 94/255, blue: 166/255) // #0D5EA6
+    static let brandAccent = Color(red: 234/255, green: 166/255, blue: 77/255)  // #EAA64D
+    static let brandSecondary = Color(red: 199/255, green: 138/255, blue: 59/255) // #C78A3B
+    static let brandDark = Color(red: 161/255, green: 109/255, blue: 40/255)     // #A16D28
+    static let brandBackground = Color(red: 246/255, green: 240/255, blue: 240/255) // #F6F0F0
+}
+
 // Ensure both structs conform to Hashable in their main declarations:
 struct Workout: Identifiable, Equatable, Hashable, Codable {
     let id: UUID
@@ -140,12 +149,6 @@ struct ContentView: View {
                 showAddDayOrFocus: $showAddDayOrFocus,
                 selectedSection: $selectedSection
             )
-            .sheet(isPresented: $showAddDayOrFocus) {
-                AddSectionView { title in
-                    workoutPlan.sections.append(WorkoutSection(title: title))
-                    showAddDayOrFocus = false
-                }
-            }
             .navigationDestination(item: $selectedSection) { section in
                 WorkoutListView(
                     section: section,
@@ -157,6 +160,12 @@ struct ContentView: View {
                     selectedSection: $selectedSection,
                     onBack: { selectedSection = nil }
                 )
+            }
+        }
+        .sheet(isPresented: $showAddDayOrFocus) {
+            AddSectionView { title in
+                workoutPlan.sections.append(WorkoutSection(title: title))
+                showAddDayOrFocus = false
             }
         }
     }
@@ -179,7 +188,7 @@ struct DaySelectionView: View {
         VStack(alignment: .leading) {
             HStack(alignment: .center, spacing: 0) {
                 Text("Workouts")
-                    .font(.system(size: 30, weight: .bold))
+                    .figtreeFont(size: 17, weight: .bold)
                     .padding(.leading, 16)
                     .padding(.top, 12)
                 Spacer()
@@ -187,14 +196,15 @@ struct DaySelectionView: View {
                     Button("Done") {
                         isReorderingSections = false
                     }
-                    .font(.system(size: 18, weight: .semibold))
+                    .figtreeFont(size: 18, weight: .semibold)
+                    .foregroundColor(.brandPrimary)
                     .padding(.trailing, 8)
                     .padding(.top, 12)
                 }
                 Button(action: { showAddDayOrFocus = true }) {
                     Image(systemName: "plus.circle.fill")
                         .font(.system(size: 24, weight: .regular))
-                        .foregroundColor(.accentColor)
+                        .foregroundColor(.brandAccent)
                         .padding(.trailing, 8)
                         .padding(.top, 12)
                 }
@@ -205,27 +215,27 @@ struct DaySelectionView: View {
                 } label: {
                     Image(systemName: "person.circle")
                         .font(.system(size: 24, weight: .regular))
-                        .foregroundColor(.accentColor)
+                        .foregroundColor(.brandPrimary)
                         .padding(.trailing, 16)
                         .padding(.top, 12)
                 }
             }
-            // Start grey area
+            // Start content area
             VStack(spacing: 0) {
                 if workoutPlan.sections.isEmpty {
                     VStack {
                         Spacer()
                         VStack(spacing: 24) {
-                            Text("No days or focuses yet! Add one to get started 🏃‍♂️")
-                                .font(.body)
+                            Text("Add your first workout")
+                                .figtreeFont(size: 15, weight: .regular)
                                 .foregroundColor(.secondary)
                                 .multilineTextAlignment(.center)
                                 .padding(.horizontal, 32)
                         }
                         Spacer()
                     }
-                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
-                    .background(Color(.systemBackground))
+                                            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
+                        .background(Color(.systemGray6))
                 } else {
                     List {
                         ForEach(workoutPlan.sections) { section in
@@ -250,14 +260,17 @@ struct DaySelectionView: View {
                                     }
                                 } else {
                                     Button(action: { selectedSection = section }) {
-                                        Text(section.title)
-                                            .font(.title3)
-                                            .foregroundColor(.accentColor)
-                                            .padding(.vertical, 12)
-                                            .padding(.horizontal, 16)
-                                            .frame(maxWidth: .infinity, alignment: .leading)
-                                            .background(Color(.systemBackground))
-                                            .cornerRadius(12)
+                                        HStack {
+                                            Text(section.title)
+                                                .figtreeFont(size: 15, weight: .medium)
+                                                .foregroundColor(.primary)
+                                            Spacer()
+                                        }
+                                        .padding(.vertical, 16)
+                                        .padding(.horizontal, 16)
+                                        .frame(maxWidth: .infinity, alignment: .leading)
+                                        .background(Color.white)
+                                        .cornerRadius(12)
                                     }
                                     .buttonStyle(PlainButtonStyle())
                                     .contentShape(Rectangle())
@@ -345,20 +358,22 @@ struct WorkoutListView: View {
     @State private var menuWorkoutID: UUID? = nil
     @State private var completedWorkoutIDs: Set<UUID> = []
     @State private var showCongrats: Bool = false
+    @State private var motivationalQuote: MotivationalQuote?
     @EnvironmentObject var authManager: AuthenticationManager
     
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
+            // Header
             HStack(alignment: .center, spacing: 0) {
                 Button(action: { onBack() }) {
                     Image(systemName: "chevron.left")
                         .font(.system(size: 24, weight: .bold))
-                        .foregroundColor(.accentColor)
+                        .foregroundColor(.brandPrimary)
                         .padding(.leading, 8)
                         .padding(.top, 12)
                 }
                 Text(section.title)
-                    .font(.system(size: 30, weight: .bold))
+                    .figtreeFont(size: 17, weight: .bold)
                     .padding(.leading, 8)
                     .padding(.top, 12)
                 Spacer()
@@ -366,7 +381,8 @@ struct WorkoutListView: View {
                     Button("Done") {
                         isReorderingWorkouts = false
                     }
-                    .font(.system(size: 18, weight: .semibold))
+                    .figtreeFont(size: 18, weight: .semibold)
+                    .foregroundColor(.brandPrimary)
                     .padding(.trailing, 8)
                     .padding(.top, 12)
                 }
@@ -377,24 +393,16 @@ struct WorkoutListView: View {
                 } label: {
                     Image(systemName: "person.circle")
                         .font(.system(size: 24, weight: .regular))
-                        .foregroundColor(.accentColor)
+                        .foregroundColor(.brandPrimary)
                         .padding(.trailing, 8)
                         .padding(.top, 12)
                 }
                 Button(action: { showAddWorkoutSheet = true }) {
                     Image(systemName: "plus.circle.fill")
                         .font(.system(size: 24, weight: .regular))
-                        .foregroundColor(.accentColor)
+                        .foregroundColor(.brandAccent)
                         .padding(.trailing, 16)
                         .padding(.top, 12)
-                }
-            }
-            .sheet(isPresented: $showAddWorkoutSheet) {
-                WorkoutSearchView { workout in
-                    if let idx = workoutPlan.sections.firstIndex(where: { $0.id == section.id }) {
-                        workoutPlan.sections[idx].workouts.append(workout)
-                    }
-                    showAddWorkoutSheet = false
                 }
             }
             Spacer().frame(height: 16)
@@ -403,8 +411,8 @@ struct WorkoutListView: View {
                     // Remove the empty state: do not show any message or button when workouts is empty
                     if workoutPlan.sections[idx].workouts.isEmpty {
                         VStack(spacing: 24) {
-                            Text("Add your first workout")
-                                .font(.body)
+                            Text("Add your first exercise")
+                                .figtreeFont(size: 15, weight: .regular)
                                 .foregroundColor(.secondary)
                                 .multilineTextAlignment(.center)
                                 .frame(maxWidth: .infinity, alignment: .center)
@@ -416,21 +424,30 @@ struct WorkoutListView: View {
                         .padding(.vertical, 16)
                     } else {
                         ForEach(Array(workoutPlan.sections[idx].workouts.enumerated()), id: \.element.id) { (workoutIdx, workout) in
-                            HStack(alignment: .center) {
+                            HStack(alignment: .center, spacing: 12) {
                                 // Checkbox
                                 Button(action: {
                                     if completedWorkoutIDs.contains(workout.id) {
                                         completedWorkoutIDs.remove(workout.id)
+                                        // Clear quote when any workout is unchecked
+                                        motivationalQuote = nil
                                     } else {
                                         completedWorkoutIDs.insert(workout.id)
+                                        // Check if all workouts are now completed
+                                        if let idx = workoutPlan.sections.firstIndex(where: { $0.id == section.id }) {
+                                            let allWorkouts = Set(workoutPlan.sections[idx].workouts.map { $0.id })
+                                            if completedWorkoutIDs.union([workout.id]).isSuperset(of: allWorkouts) {
+                                                motivationalQuote = MotivationalQuote.randomQuote()
+                                            }
+                                        }
                                     }
                                 }) {
                                     Image(systemName: completedWorkoutIDs.contains(workout.id) ? "checkmark.circle.fill" : "circle")
-                                        .foregroundColor(completedWorkoutIDs.contains(workout.id) ? .green : .gray)
+                                        .foregroundColor(completedWorkoutIDs.contains(workout.id) ? .brandAccent : .gray)
                                         .font(.system(size: 24))
+                                        .frame(width: 48, height: 48)
                                 }
                                 .buttonStyle(PlainButtonStyle())
-                                .padding(.leading, 8)
                                 // Card content or inline edit
                                 if editingWorkoutID == workout.id {
                                     TextField("Rename workout", text: $workoutNameDraft)
@@ -445,27 +462,29 @@ struct WorkoutListView: View {
                                         Image(systemName: "xmark.circle.fill").foregroundColor(.red)
                                     }
                                 } else {
-                                    VStack(alignment: .leading, spacing: 4) {
-                                        Text(workout.name)
-                                            .figtreeFont(size: 17, weight: .regular)
-                                            .foregroundColor(.primary)
-                                        if let detail = workout.detail, !detail.isEmpty {
-                                            Text(detail)
-                                                .figtreeFont(size: 14, weight: .regular)
-                                                .foregroundColor(.blue)
+                                    Button(action: { selectedWorkout = workout }) {
+                                        VStack(alignment: .leading, spacing: 4) {
+                                            Text(workout.name)
+                                                .figtreeFont(size: 15, weight: .regular)
+                                                .foregroundColor(.primary)
+                                            if let detail = workout.detail, !detail.isEmpty {
+                                                Text(detail)
+                                                    .figtreeFont(size: 13, weight: .regular)
+                                                    .foregroundColor(.secondary)
+                                            }
+                                            Text(workout.category.rawValue)
+                                                .figtreeFont(size: 13, weight: .regular)
+                                                .foregroundColor(.gray)
                                         }
-                                        Text(workout.category.rawValue)
-                                            .figtreeFont(size: 14, weight: .regular)
-                                            .foregroundColor(.gray)
+                                        .padding(.vertical, 16)
+                                        .padding(.horizontal, 16)
+                                        .frame(maxWidth: .infinity, alignment: .leading)
                                     }
-                                    .padding(.vertical, 12)
-                                    .padding(.horizontal, 16)
-                                    .onTapGesture {
-                                        selectedWorkout = workout
-                                    }
+                                    .buttonStyle(PlainButtonStyle())
                                 }
                                 Spacer()
                             }
+                            .padding(.vertical, 8)
                             .contentShape(Rectangle())
                             .swipeActions(edge: .trailing) {
                                 Button(role: .destructive) {
@@ -514,24 +533,59 @@ struct WorkoutListView: View {
             }
             .listStyle(.insetGrouped)
             .environment(\.editMode, .constant(isReorderingWorkouts ? .active : .inactive))
-            .sheet(item: $selectedWorkout) { workout in
-                WorkoutDetailSheetNoImage(
-                    workout: workout,
-                    repOrTimeInput: $repOrTimeInput,
-                    onSave: {
-                        if let sectionIdx = workoutPlan.sections.firstIndex(where: { $0.id == section.id }),
-                           let workoutIdx = workoutPlan.sections[sectionIdx].workouts.firstIndex(where: { $0.id == workout.id }) {
-                            workoutPlan.sections[sectionIdx].workouts[workoutIdx].detail = repOrTimeInput
-                        }
-                        selectedWorkout = nil
-                    },
-                    onCancel: {
-                        selectedWorkout = nil
-                    }
-                )
+            
+            // Show motivational quote when all workouts are completed
+            if let quote = motivationalQuote {
+                Spacer()
+                VStack(spacing: 8) {
+                    Text(quote.text)
+                        .figtreeFont(size: 15, weight: .regular)
+                        .foregroundColor(.secondary)
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal, 24)
+                    
+                    Text("— \(quote.author)")
+                        .figtreeFont(size: 13, weight: .regular)
+                        .foregroundColor(.secondary)
+                        .italic()
+                }
+                .padding(.vertical, 16)
+                .background(Color.white)
+                .cornerRadius(12)
+                .padding(.horizontal, 16)
+                .frame(maxWidth: .infinity, alignment: .center)
+                Spacer()
             }
         }
         .navigationBarHidden(true)
+        .background(Color(.systemGray6))
+        .safeAreaInset(edge: .bottom) {
+            Color.clear.frame(height: 0)
+        }
+        .sheet(item: $selectedWorkout) { workout in
+            WorkoutDetailSheetNoImage(
+                workout: workout,
+                repOrTimeInput: $repOrTimeInput,
+                onSave: {
+                    if let sectionIdx = workoutPlan.sections.firstIndex(where: { $0.id == section.id }),
+                       let workoutIdx = workoutPlan.sections[sectionIdx].workouts.firstIndex(where: { $0.id == workout.id }) {
+                        workoutPlan.sections[sectionIdx].workouts[workoutIdx].detail = repOrTimeInput
+                    }
+                    selectedWorkout = nil
+                },
+                onCancel: {
+                    selectedWorkout = nil
+                }
+            )
+        }
+        .sheet(isPresented: $showAddWorkoutSheet) {
+            WorkoutSearchView { workout in
+                if let idx = workoutPlan.sections.firstIndex(where: { $0.id == section.id }) {
+                    workoutPlan.sections[idx].workouts.append(workout)
+                }
+                showAddWorkoutSheet = false
+            }
+        }
     }
 }
 
@@ -561,36 +615,79 @@ struct AddSectionView: View {
     var onAdd: (String) -> Void
     @Environment(\.presentationMode) var presentationMode
     @State private var title = ""
+    
+    let quickAddOptions = [
+        "Morning yoga flow",
+        "Arm day", 
+        "Leg day",
+        "Evening workout",
+        "TRX in the park",
+        "Beach calisthenics"
+    ]
+    
     var body: some View {
         NavigationView {
             Form {
-                HStack(spacing: 8) {
-                    TextField("e.g. Monday, Upper Body, Cardio, Yoga, Rest", text: $title, onCommit: {
-                        if !title.trimmingCharacters(in: .whitespaces).isEmpty {
+                Section {
+                    HStack(spacing: 8) {
+                        TextField("Leg day, Yoga, Morning flow...", text: $title, onCommit: {
+                            if !title.trimmingCharacters(in: .whitespaces).isEmpty {
+                                onAdd(title)
+                                presentationMode.wrappedValue.dismiss()
+                            }
+                        })
+                        .figtreeFont(size: 15, weight: .regular)
+                        Button("Add") {
                             onAdd(title)
                             presentationMode.wrappedValue.dismiss()
                         }
-                    })
-                    .figtreeFont(size: 17)
-                    Button("Add") {
-                        onAdd(title)
-                        presentationMode.wrappedValue.dismiss()
+                        .disabled(title.trimmingCharacters(in: .whitespaces).isEmpty)
+                        .buttonStyle(.bordered)
+                        .foregroundColor(.brandPrimary)
+                        .figtreeFont(size: 15, weight: .semibold)
+                        .padding(.vertical, 4)
                     }
-                    .disabled(title.trimmingCharacters(in: .whitespaces).isEmpty)
-                    .buttonStyle(.bordered)
-                    .figtreeFont(size: 16, weight: .semibold)
-                    .padding(.vertical, 4)
+                }
+                
+                Section(header: Text("Quick add")) {
+                    LazyVGrid(columns: [
+                        GridItem(.flexible()),
+                        GridItem(.flexible())
+                    ], spacing: 12) {
+                        ForEach(quickAddOptions, id: \.self) { option in
+                            Button(action: {
+                                onAdd(option)
+                                presentationMode.wrappedValue.dismiss()
+                            }) {
+                                Text(option)
+                                    .figtreeFont(size: 14, weight: .medium)
+                                    .foregroundColor(.brandPrimary)
+                                    .padding(.vertical, 12)
+                                    .padding(.horizontal, 16)
+                                    .frame(maxWidth: .infinity)
+                                    .background(Color.white)
+                                    .cornerRadius(8)
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 8)
+                                            .stroke(Color.brandPrimary.opacity(0.3), lineWidth: 1)
+                                    )
+                            }
+                            .buttonStyle(PlainButtonStyle())
+                        }
+                    }
+                    .padding(.vertical, 8)
                 }
             }
             .navigationTitle("Name your workout")
+            .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .navigationBarLeading) {
-                    Button(action: { presentationMode.wrappedValue.dismiss() }) {
-                        Image(systemName: "chevron.left")
-                            .font(.system(size: 22, weight: .bold))
-                            .foregroundColor(.accentColor)
-                    }
-                }
+                                        ToolbarItem(placement: .navigationBarLeading) {
+                            Button(action: { presentationMode.wrappedValue.dismiss() }) {
+                                Image(systemName: "chevron.left")
+                                    .font(.system(size: 22, weight: .bold))
+                                    .foregroundColor(.brandPrimary)
+                            }
+                        }
             }
         }
     }
@@ -612,7 +709,7 @@ struct EditWorkoutDetailSheet: View {
                 Section(header: Text("Details")) {
                     HStack {
                         Text("Sets")
-                            .foregroundColor(.secondary)
+                            .foregroundColor(.primary)
                         Spacer()
                         TextField("Sets", text: $sets)
                             .keyboardType(.numberPad)
@@ -621,7 +718,7 @@ struct EditWorkoutDetailSheet: View {
                     }
                     HStack {
                         Text("Reps")
-                            .foregroundColor(.secondary)
+                            .foregroundColor(.primary)
                         Spacer()
                         TextField("Reps", text: $reps)
                             .keyboardType(.numberPad)
@@ -630,7 +727,7 @@ struct EditWorkoutDetailSheet: View {
                     }
                     HStack {
                         Text("Time")
-                            .foregroundColor(.secondary)
+                            .foregroundColor(.primary)
                         Spacer()
                         TextField("Time", text: $time)
                             .keyboardType(.numberPad)
@@ -660,19 +757,21 @@ struct EditWorkoutDetailSheet: View {
                     }
                     .disabled(sets.trimmingCharacters(in: .whitespaces).isEmpty && reps.trimmingCharacters(in: .whitespaces).isEmpty && time.trimmingCharacters(in: .whitespaces).isEmpty)
                     .buttonStyle(.bordered)
+                    .foregroundColor(.brandPrimary)
                     .figtreeFont(size: 16, weight: .semibold)
                     .padding(.vertical, 4)
                 }
             }
             .navigationTitle("Set workout details")
+            .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .navigationBarLeading) {
-                    Button(action: { onCancel() }) {
-                        Image(systemName: "chevron.left")
-                            .font(.system(size: 22, weight: .bold))
-                            .foregroundColor(.accentColor)
-                    }
-                }
+                                        ToolbarItem(placement: .navigationBarLeading) {
+                            Button(action: { onCancel() }) {
+                                Image(systemName: "chevron.left")
+                                    .font(.system(size: 22, weight: .bold))
+                                    .foregroundColor(.brandPrimary)
+                            }
+                        }
             }
             .onAppear {
                 // Try to parse existing input for editing
@@ -710,18 +809,18 @@ struct WorkoutSearchView: View {
                     Button(action: { presentationMode.wrappedValue.dismiss() }) {
                         Image(systemName: "chevron.left")
                             .font(.system(size: 22, weight: .bold))
-                            .foregroundColor(.accentColor)
+                            .foregroundColor(.brandPrimary)
                     }
                     .padding(.leading, 8)
                     Spacer()
                     Text("Add workout")
-                        .font(.largeTitle).bold()
+                        .figtreeFont(size: 17, weight: .bold)
                         .padding(.trailing, 16)
                     Spacer(minLength: 0)
                     Button(action: { showAddCustomSheet = true }) {
                         Image(systemName: "plus.circle")
                             .font(.system(size: 28, weight: .regular))
-                            .foregroundColor(.accentColor)
+                            .foregroundColor(.brandAccent)
                             .padding(.trailing, 8)
                     }
                 }
@@ -731,7 +830,7 @@ struct WorkoutSearchView: View {
                     .textFieldStyle(RoundedBorderTextFieldStyle())
                     .padding(.horizontal, 16)
                     .padding(.bottom, 8)
-                    .figtreeFont(size: 17)
+                    .figtreeFont(size: 15, weight: .regular)
                     .onChange(of: search) { newValue in
                         filterWorkouts()
                     }
@@ -742,13 +841,26 @@ struct WorkoutSearchView: View {
                     }) {
                         HStack {
                             Text(workout.name)
+                                .figtreeFont(size: 15, weight: .regular)
+                                .foregroundColor(.primary)
                             Spacer()
                             Text(workout.category.rawValue)
-                                .figtreeFont(size: 14, weight: .regular)
+                                .figtreeFont(size: 13, weight: .regular)
                                 .foregroundColor(.gray)
                         }
+                        .padding(.vertical, 16)
+                        .padding(.horizontal, 16)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .background(Color.white)
+                        .cornerRadius(8)
                     }
+                    .buttonStyle(PlainButtonStyle())
+                    .contentShape(Rectangle())
+                    .listRowInsets(EdgeInsets())
+                    .listRowSeparator(.hidden)
                 }
+                .padding(.horizontal, 16)
+                .listStyle(PlainListStyle())
             }
             .navigationBarHidden(true)
             .toolbar {
@@ -757,42 +869,43 @@ struct WorkoutSearchView: View {
                 }
             }
             .onAppear(perform: filterWorkouts)
-            .sheet(isPresented: $showAddCustomSheet) {
-                NavigationView {
-                    Form {
-                        Section(header: Text("Workout name")) {
-                            TextField("Plank, Kayak, Jump rope...", text: $customName)
-                        }
-                        Section(header: Text("Type")) {
-                            Picker("Type", selection: $customType) {
-                                ForEach(WorkoutCategory.allCases, id: \.self) { cat in
-                                    Text(cat.rawValue).tag(cat)
-                                }
-                            }
-                            .pickerStyle(.menu)
-                        }
+        }
+        .sheet(isPresented: $showAddCustomSheet) {
+            NavigationView {
+                Form {
+                    Section(header: Text("Workout name")) {
+                        TextField("Plank, Kayak, Jump rope...", text: $customName)
                     }
-                    .navigationTitle("Add custom workout")
-                    .toolbar {
-                        ToolbarItem(placement: .navigationBarLeading) {
+                    Section(header: Text("Type")) {
+                        Picker("Type", selection: $customType) {
+                            ForEach(WorkoutCategory.allCases, id: \.self) { cat in
+                                Text(cat.rawValue).tag(cat)
+                            }
+                        }
+                        .pickerStyle(.menu)
+                    }
+                }
+                .navigationTitle("Add custom workout")
+                .toolbar {
+                                            ToolbarItem(placement: .navigationBarLeading) {
                             Button(action: { showAddCustomSheet = false; customName = ""; customType = .strength }) {
                                 Image(systemName: "chevron.left")
                                     .font(.system(size: 22, weight: .bold))
-                                    .foregroundColor(.accentColor)
+                                    .foregroundColor(.brandPrimary)
                             }
                         }
-                        ToolbarItem(placement: .confirmationAction) {
-                            Button("Save") {
-                                let newWorkout = Workout(name: customName, category: customType, imageName: "figure.strengthtraining.traditional", description: "Custom workout")
-                                filteredWorkouts.insert(newWorkout, at: 0)
-                                onSelect(newWorkout)
-                                showAddCustomSheet = false
-                                customName = ""
-                                customType = .strength
-                                presentationMode.wrappedValue.dismiss()
-                            }
-                            .disabled(customName.trimmingCharacters(in: .whitespaces).isEmpty)
+                    ToolbarItem(placement: .confirmationAction) {
+                        Button("Save") {
+                            let newWorkout = Workout(name: customName, category: customType, imageName: "figure.strengthtraining.traditional", description: "Custom workout")
+                            filteredWorkouts.insert(newWorkout, at: 0)
+                            onSelect(newWorkout)
+                            showAddCustomSheet = false
+                            customName = ""
+                            customType = .strength
+                            presentationMode.wrappedValue.dismiss()
                         }
+                        .disabled(customName.trimmingCharacters(in: .whitespaces).isEmpty)
+                        .foregroundColor(.brandPrimary)
                     }
                 }
             }
@@ -837,7 +950,7 @@ struct SectionRow: View {
             Button(action: onAddWorkout) {
                 Image(systemName: "plus.circle")
                     .font(.system(size: 20, weight: .regular))
-                    .foregroundColor(.accentColor)
+                    .foregroundColor(.brandAccent)
             }
             Menu {
                 Button(action: {
@@ -864,9 +977,9 @@ struct SectionRow: View {
                     .foregroundColor(.gray)
                     .padding(.leading, 2)
             }
-        }
-        .padding(.bottom, 16)
-        .padding(.horizontal, 16)
+                                }
+                        .padding(.vertical, 8)
+                        .padding(.horizontal, 16)
     }
 }
 
@@ -897,7 +1010,7 @@ struct WorkoutRow: View {
                         if let detail = workout.detail, !detail.isEmpty {
                             Text(detail)
                                 .figtreeFont(size: 14, weight: .regular)
-                                .foregroundColor(.blue)
+                                .foregroundColor(.secondary)
                         }
                         Text(workout.category.rawValue)
                             .figtreeFont(size: 14, weight: .regular)
@@ -962,6 +1075,31 @@ struct WorkoutDetailSheetNoImage: View {
     }
 }
 
+// MARK: - Motivational Quotes
+struct MotivationalQuote {
+    let text: String
+    let author: String
+}
+
+extension MotivationalQuote {
+    static let exerciseQuotes: [MotivationalQuote] = [
+        MotivationalQuote(text: "Reading is to the mind what exercise is to the body.", author: "Joseph Addison"),
+        MotivationalQuote(text: "There is no exercise better for the heart than reaching down and lifting people up.", author: "John Holmes"),
+        MotivationalQuote(text: "Being entirely honest with oneself is a good exercise.", author: "Sigmund Freud"),
+        MotivationalQuote(text: "Exercise because it's good for you even if every step weighs a thousand pounds.", author: "Andrew Solomon"),
+        MotivationalQuote(text: "Women need exercise for their faculties, and a field for their efforts, as much as their brothers do.", author: "Charlotte Brontë"),
+        MotivationalQuote(text: "A bear, however hard he tries, grows tubby without exercise.", author: "A.A. Milne"),
+        MotivationalQuote(text: "Fantasy is an exercise bicycle for the mind. It might not take you anywhere, but it tones up the muscles that can.", author: "Terry Pratchett"),
+        MotivationalQuote(text: "The trouble is if you don't spend your life yourself, other people spend it for you.", author: "Peter Shaffer"),
+        MotivationalQuote(text: "Eat healthy and exercise. That's all. Don't let anyone tell you you're not good enough.", author: "Gerard Way"),
+        MotivationalQuote(text: "My grandmother started walking five miles a day when she was sixty. She's ninety-seven now.", author: "Ellen DeGeneres")
+    ]
+    
+    static func randomQuote() -> MotivationalQuote {
+        exerciseQuotes.randomElement() ?? MotivationalQuote(text: "Great job completing your workout!", author: "FitNote")
+    }
+}
+
 enum WorkoutCategory: String, CaseIterable, Codable {
     case strength = "Strength"
     case calisthenics = "Calisthenics"
@@ -994,11 +1132,11 @@ struct LoginView: View {
                     .frame(width: 72, height: 72)
                     .padding(.bottom, 4)
                 Text("FitNote")
-                    .font(.system(size: 48, weight: .bold, design: .rounded))
+                    .figtreeFont(size: 48, weight: .semibold)
                     .foregroundColor(.primary)
                 
                 Text("A simple way to plan your workouts")
-                    .font(.title2)
+                    .figtreeFont(size: 22, weight: .regular)
                     .foregroundColor(.secondary)
                     .multilineTextAlignment(.center)
             }
@@ -1022,12 +1160,12 @@ struct LoginView: View {
                     Image(systemName: "person.circle.fill")
                         .font(.title2)
                     Text("Sign In (Test Mode)")
-                        .font(.headline)
+                        .figtreeFont(size: 17, weight: .semibold)
                 }
                 .foregroundColor(.white)
                 .frame(maxWidth: .infinity)
                 .frame(height: 50)
-                .background(Color.blue)
+                .background(Color.brandPrimary)
                 .cornerRadius(8)
             }
             .padding(.horizontal, 32)
@@ -1035,25 +1173,25 @@ struct LoginView: View {
             // Privacy and Terms
             VStack(spacing: 8) {
                 Text("By continuing, you agree to our")
-                    .font(.caption)
+                    .figtreeFont(size: 12, weight: .regular)
                     .foregroundColor(.secondary)
                 
                 HStack(spacing: 4) {
                     Button("Terms of Service") {
                         // Handle terms of service
                     }
-                    .font(.caption)
-                    .foregroundColor(.accentColor)
+                    .figtreeFont(size: 12, weight: .regular)
+                    .foregroundColor(.brandPrimary)
                     
                     Text("and")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
+                    .figtreeFont(size: 12, weight: .regular)
+                    .foregroundColor(.secondary)
                     
                     Button("Privacy Policy") {
                         // Handle privacy policy
                     }
-                    .font(.caption)
-                    .foregroundColor(.accentColor)
+                    .figtreeFont(size: 12, weight: .regular)
+                    .foregroundColor(.brandPrimary)
                 }
             }
             
